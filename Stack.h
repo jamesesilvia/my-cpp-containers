@@ -4,120 +4,132 @@
 #include <cassert>
 #include <algorithm>
 
-template<class T>
-T* NewCopy(const T* src, size_t srcsize, size_t destsize)
+// as seen in exceptional c++
+template <class T1, class T2>
+void construct(T1* p, const T2& value)
 {
-    assert(destsize >= srcsize);
-    T* dest = new T[destsize];
-    try
-    {
-        std::copy(src, src+srcsize, dest);
-    }
-    catch(...)
-    {
-        delete[] dest;
-        throw;
-    }
-    return dest;
+    new (p) T1(value);
 }
 
-template<class T>
-class StackImp
+template <class T>
+void destroy(T* p)
 {
-protected:
-    T* _v;
-    size_t _vsize;
-    size_t _vused;
+    p->~T();
+}
 
-    StackImp(size_t size)
-        : _v(static_cast<T*> ( size == 0 ? 0 : operator new(sizeof(T)*size)))
-        , _vsize(size)
-        , _vused(0)
+template <class FwdIter>
+void destroy(FwdIter first, FwdIter last)
+{
+    while (first != last)
+    {
+        destroy(&*first);
+        ++first;
+    }
+}
+
+
+template <class T>
+void swap(T& a, T& b)
+{
+    T temp(a);
+    a = b;
+    b = temp;
+}
+// as seen in exceptional c++
+
+
+template<class T>
+class StackImpl
+{
+public:
+    T* m_pT;
+    size_t m_size;
+    size_t m_used;
+
+    StackImpl(size_t size)
+        : m_pT(static_cast<T*> ( size == 0 ? 0 : operator new(sizeof(T)*size)))
+        , m_size(size)
+        , m_used(0)
         { }
 
-    ~StackImp()
+    ~StackImpl()
     {
-        destroy(_v, _v + _vused);
-        operator delete(_v);
+        destroy(m_pT, m_pT + m_used);
+        operator delete(m_pT);
     }
 
-    void Swap(const StackImp& other)
+    void Swap(StackImpl& other)
     {
-        std::swap(_v, other._v);
-        std::swap(_vsize, other._vsize);
-        std::swap(_vused, other._vused);
+        swap(m_pT, other.m_pT);
+        swap(m_size, other.m_size);
+        swap(m_used, other.m_used);
     }
 
 private:
-    StackImp(const StackImp&);
-    StackImp& operator=(const StackImp&);
+    StackImpl(const StackImpl&);
+    StackImpl& operator=(const StackImpl&);
 };
 
 
 template<class T>
 class Stack
 {
-    T* _v;
-    size_t _vsize;
-    size_t _vused;
 
 public:
-    Stack(size_t size = 10)
-        : _v(new T[size])
-        , _vsize(size)
-        , _vused(0)
+    Stack(size_t size = 0)
+        : m_stackImpl(size)
         { }
 
-    ~Stack()
-    {
-        delete[] _v;
-    }
+    ~Stack() = default;
 
     Stack(const Stack& other)
-        : _v(NewCopy(other._v, other._vsize, other._vsize))
-        , _vsize(other._vsize)
-        , _vused(other._vused)
-        { }
+        : m_stackImpl(other.m_stackImpl.m_used)
+    {
+        while (m_stackImpl.used < other.m_stackImpl.m_used)
+        {
+            construct(m_stackImpl.m_pT + m_stackImpl.m_used,
+                      other.m_stackImpl.m_pT[m_stackImpl.m_used]);
+            ++m_stackImpl.m_used;
+        }
+    }
 
-#if 0
     Stack& operator=(const Stack& other)
     {
-        if (*this != &other)
-        {
-            auto v_new = NewCopy(other._v, other._vsize, other._vsize);
-            delete[] _v;
-            _v = v_new;
-            _vsize = other._vsize;
-            _vused = other._vused;
-        }
+        Stack temp(other);
+        m_stackImpl.Swap(temp.m_stackImpl);
         return *this;
     }
-#endif
 
     bool Empty() const
     {
-        return _vused == 0;
+        return (m_stackImpl.m_used == 0);
     }
 
     size_t Count() const
     {
-        return _vused;
+        return m_stackImpl.m_used;
     }
 
     void push(const T& t)
     {
-        if (_vsize == _vused)
+        if (m_stackImpl.m_size == m_stackImpl.m_used)
         {
-            auto newSize = getNewSize();
-            auto v_new = NewCopy(_v, _vsize, newSize);
-            _v = v_new;
-            _vsize = newSize;
+            Stack temp(getNewSize());
+            while (temp.Count() < m_stackImpl.m_used)
+            {
+                temp.push(m_stackImpl.m_pT[temp.Count()]);
+            }
+            temp.push(t);
+            m_stackImpl.Swap(temp.m_stackImpl);
         }
-        _v[_vused] = t;
-        ++_vused;
+        else
+        {
+            construct(m_stackImpl.m_pT + m_stackImpl.m_used, t);
+            ++m_stackImpl.m_used;
+        }
     }
 
-    const T& Top() const
+    T& Top()
     {
         if (Empty())
         {
@@ -125,7 +137,7 @@ public:
         }
         else
         {
-            return _v[_vused - 1];
+            return m_stackImpl.m_pT[m_stackImpl.m_used - 1];
         }
     }
 
@@ -137,16 +149,52 @@ public:
         }
         else
         {
-            --_vused;
+            --m_stackImpl.m_used;
+            destroy(m_stackImpl.m_pT + m_stackImpl.m_used);
         }
     }
 
 private:
+    StackImpl<T> m_stackImpl;
+
+    size_t getNewSize()
+    {
+        return (2*m_stackImpl.m_used + 1);
+    }
+
+#if 0
+    const T& Top() const
+    {
+        if (Empty())
+        {
+            throw "empty stack";
+        }
+        else
+        {
+            return this->m_pT[this->m_used - 1];
+        }
+    }
+
+    void Pop()
+    {
+        if (Empty())
+        {
+            throw "pop empty stack";
+        }
+        else
+        {
+            --this->m_used;
+        }
+    }
+
+private:
+    StackImpl<T> m_stackImpl;
     
     size_t getNewSize() const
     {
-        return _vsize*2 + 1;
+        return this->m_size*2 + 1;
     }
+#endif
 };
 
 #endif

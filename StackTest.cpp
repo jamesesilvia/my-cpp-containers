@@ -10,13 +10,12 @@ public:
     Stack<int> intStack;
 
     AnIntegerStack() = default;
-
-    void SetUp()
-    {
-        testInt = 10;
-        Stack<int> intStack;
-    }
 };
+
+TEST_F(AnIntegerStack, GetsSetUp)
+{
+    ASSERT_TRUE(true);
+}
 
 TEST_F(AnIntegerStack, CanHaveAnIntegerPushed)
 {
