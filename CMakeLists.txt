@@ -9,6 +9,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pthread")
 set(sources 
    main.cpp
    StackTest.cpp
+   ListTest.cpp
    )
 add_executable(test ${sources})
 target_link_libraries(test pthread)
