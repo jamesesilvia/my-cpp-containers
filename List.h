@@ -176,7 +176,7 @@ public:
     List(const List&) = delete;
     List(List&&) = delete;
     List& operator=(const List&) = delete;
-    List&& operator=(List&&) = delete;
+    List& operator=(List&&) = delete;
 
     List(std::initializer_list<T> args)
     {
