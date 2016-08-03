@@ -34,6 +34,19 @@ public:
     List& operator=(const List&) = delete;
     List& operator=(List&&) = delete;
     
+    explicit List(const T& t)
+    {
+        push_back(t);
+    }
+
+    List(std::initializer_list<T> args)
+    {
+        for (auto& t : args)
+        {
+            push_back(t);
+        }
+    }
+    
     ~List()
     {
         auto item = m_pListItemFront;
@@ -47,19 +60,6 @@ public:
 
     size_t size() const { return m_size; }
     bool empty() const { return (size() == 0); }
-
-    explicit List(const T& t)
-    {
-        push_back(t);
-    }
-
-    List(std::initializer_list<T> args)
-    {
-        for (auto& t : args)
-        {
-            push_back(t);
-        }
-    }
 
     void push_front(const T& t)
     {
