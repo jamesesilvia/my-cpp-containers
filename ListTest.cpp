@@ -14,11 +14,6 @@ public:
     AnIntegerList() = default;
 }; 
 
-TEST_F(AnIntegerList, GetsSetUp)
-{
-    ASSERT_TRUE(true);
-}
-
 TEST_F(AnIntegerList, CanPushFrontOnEmptyList)
 {
     ASSERT_THAT(intList.size(), Eq(0));
@@ -137,3 +132,10 @@ TEST_F(AnIntegerList, AcceptsInitializationLists)
     ASSERT_THAT(testList.front(), Eq(0));
     ASSERT_THAT(testList.back(), Eq(5));
 }
+
+TEST_F(AnIntegerList, ExplicitContructor)
+{
+    List<int> intList(testInt);
+    ASSERT_THAT(testInt, Eq(intList.front()));
+}
+

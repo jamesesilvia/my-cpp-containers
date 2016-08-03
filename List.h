@@ -48,6 +48,11 @@ public:
     size_t size() const { return m_size; }
     bool empty() const { return (size() == 0); }
 
+    explicit List(const T& t)
+    {
+        push_back(t);
+    }
+
     List(std::initializer_list<T> args)
     {
         for (auto& t : args)
