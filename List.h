@@ -2,8 +2,14 @@
 
 #include <stdexcept>
 #include <initializer_list>
+#include <cstddef>
+#include <iterator>
+#include <type_traits>
 
-template<class T>    
+template<typename T>
+using remove_cv_t = typename std::remove_cv<T>::type;
+
+template<class T>
 struct ListItem
 {
     ListItem(const T& t, ListItem* next, ListItem* prev)
@@ -24,9 +30,91 @@ struct ListItem
     ListItem* m_prev;
 };
 
+template
+<
+    class T,
+    class UnqualifiedType = remove_cv_t<T>
+>
+class ListIter
+    : public std::iterator<std::forward_iterator_tag,
+                           UnqualifiedType,
+                           std::ptrdiff_t,
+                           T*,
+                           T&>
+{
+public:
+    ListIter() = default;
+
+    explicit ListIter(ListItem<UnqualifiedType>* nd)
+        : itr(nd)
+        { }
+
+    ListIter& operator++()
+    {
+        if (itr)
+        {
+            itr = itr->m_next;
+            return *this;
+        }
+        else
+        {
+            throw std::length_error("Empty Iterator");
+        }
+    }
+
+    ListIter& operator++(int)
+    {
+        if (itr)
+        {
+            ListIter tmp {*this};
+            itr = itr->next;
+            return tmp;
+        }
+        else
+        {
+            throw std::length_error("Empty Iterator");
+        }
+    }
+
+    template <class OtherType>
+    bool operator==(const ListIter<OtherType>& rhs) const
+    {
+        return itr == rhs.itr;
+    }
+
+    template<class OtherType>
+    bool operator!=(const ListIter<OtherType>& rhs) const
+    {
+        return itr != rhs.itr;
+    }
+
+    T& operator*() const
+    {
+        if (itr)
+        {
+            return *itr->m_pT;
+        }
+        else
+        {
+            throw std::length_error("Empty Iterator");
+        }
+    }
+
+    T& operator->() const
+    {
+        return *itr;
+    }
+
+private:
+    ListItem<UnqualifiedType>* itr {nullptr};
+};
+
+
 template<class T>
 class List
 {
+    typedef ListIter<T> iterator;
+
 public:
     List() = default;
     List(const List&) = delete;
@@ -156,6 +244,11 @@ public:
             delete pToRemove;
         }
     }
+
+    friend class ListIter<T>;
+
+    iterator begin() { return iterator(m_pListItemFront); }
+    iterator end() { return iterator(m_pListItemLast); }
 
 private:
     ListItem<T>* m_pListItemFront {nullptr};

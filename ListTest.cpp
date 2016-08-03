@@ -139,3 +139,11 @@ TEST_F(AnIntegerList, ExplicitContructor)
     ASSERT_THAT(testInt, Eq(intList.front()));
 }
 
+TEST_F(AnIntegerList, CanBeIterated)
+{
+    auto testInt = 0;
+    List<int> testList {0, 1, 2, 3, 4, 5};
+
+    for (auto i : testList)
+        ASSERT_THAT(testInt++, Eq(i));
+}
